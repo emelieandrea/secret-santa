@@ -1,0 +1,319 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: winter --default;
+}
+:root {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  color: #243b3d;
+  background: #f5f8fa;
+  --color-primary: #ac343d;
+  --color-primary-content: #fff;
+  --color-neutral: #244e48;
+  --color-neutral-content: #fff;
+}
+body {
+  margin: 0;
+}
+button,
+input {
+  font: inherit;
+}
+.page {
+  min-height: 100dvh;
+  background:
+    radial-gradient(ellipse at 12% 10%, #e8eff4 0, transparent 45%),
+    radial-gradient(ellipse at 90% 85%, #ecf1ef 0, transparent 45%);
+  display: flex;
+  flex-direction: column;
+}
+header {
+  width: min(1120px, 100%);
+  margin: auto;
+  padding: 30px 36px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.brand {
+  font-weight: 700;
+  font-size: 21px;
+  letter-spacing: -0.7px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.brand span {
+  color: #ac343d;
+  font-size: 32px;
+}
+.season {
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #5a7375;
+}
+main {
+  width: min(660px, 100%);
+  margin: 42px auto 56px;
+  padding: 0 24px;
+  text-align: center;
+  flex: 1;
+}
+.eyebrow {
+  font-size: 14px;
+  color: #ac343d;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+}
+h1 {
+  font-family: Georgia, serif;
+  font-size: clamp(36px, 6vw, 51px);
+  line-height: 1.13;
+  letter-spacing: -1.8px;
+  margin: 0 0 20px;
+}
+.intro {
+  color: #627477;
+  font-size: 16px;
+  line-height: 1.7;
+  max-width: 470px;
+  margin: 0 auto 32px;
+}
+.panel {
+  background: #fff;
+  border: 1px solid #e0e7ea;
+  border-radius: 18px;
+  box-shadow: 0 14px 45px #233b3d08;
+  text-align: left;
+}
+.card-body {
+  padding: 32px;
+  gap: 16px;
+}
+.step {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #617b77;
+}
+h2 {
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  margin: 0;
+}
+label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 12px 0 9px;
+}
+.input {
+  width: 100%;
+  height: 50px;
+  background: #fbfcfd;
+  border-color: #dce4e7;
+  border-radius: 8px;
+  font-size: 16px;
+}
+.btn {
+  border-radius: 8px;
+  min-height: 48px;
+  text-transform: none;
+  font-size: 15px;
+  font-weight: 600;
+}
+.main-button {
+  width: 100%;
+  margin-top: 20px;
+}
+.small {
+  font-size: 14px;
+  color: #768486;
+  text-align: center;
+  line-height: 1.6;
+  margin: 0;
+}
+.notes {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px 22px;
+  color: #68817d;
+  font-size: 13px;
+  margin: 26px -12px;
+}
+.notes span {
+  white-space: nowrap;
+}
+.list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.badge {
+  font-size: 13px;
+  height: 28px;
+  color: #5d7471;
+  border-color: #d3dfdd;
+}
+.participants {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0;
+}
+.participants li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid #eef1f2;
+  font-size: 16px;
+}
+.avatar-letter {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-weight: 600;
+  background: #e9efed;
+  color: #3a6055;
+  flex-shrink: 0;
+}
+.color-1 {
+  background: #f6e9e9;
+  color: #9b454c;
+}
+.color-2 {
+  background: #e7eef6;
+  color: #4f6e91;
+}
+.you {
+  margin-left: auto;
+  color: #7b898a;
+  font-size: 13px;
+}
+.link-row {
+  display: flex;
+  gap: 8px;
+}
+.link-row input {
+  min-width: 0;
+  font-size: 14px;
+}
+.waiting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px 0 8px;
+  color: #617b77;
+  font-size: 14px;
+}
+.reveal .card-body {
+  text-align: center;
+  align-items: center;
+  padding: 36px 28px;
+}
+.gift {
+  font-size: 64px;
+  line-height: 1.4;
+  animation: bob 3s ease-in-out infinite;
+}
+.recipient {
+  font-family: Georgia, serif;
+  color: #a52e37;
+  font-size: clamp(32px, 7vw, 48px);
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.opened .recipient {
+  animation: appear 0.65s ease-out;
+}
+.sparkles {
+  color: #c69a47;
+  font-size: 28px;
+  letter-spacing: 12px;
+  animation: appear 0.8s ease-out;
+}
+.reveal p {
+  color: #768486;
+  font-size: 16px;
+}
+.private-badge {
+  margin: 8px;
+}
+.end {
+  margin-top: 24px;
+  color: #768486;
+  font-size: 14px;
+}
+.end p {
+  margin-bottom: 12px;
+}
+.message {
+  margin-bottom: 20px;
+  text-align: left;
+  font-size: 14px;
+}
+footer {
+  padding: 24px;
+  text-align: center;
+  font-family: Georgia, serif;
+  color: #617b77;
+  font-size: 16px;
+}
+footer span {
+  display: block;
+  margin-top: 12px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  color: #849492;
+  font-size: 12px;
+  line-height: 1.6;
+}
+@keyframes bob {
+  50% {
+    transform: translateY(-6px) rotate(4deg);
+  }
+}
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-width: 600px) {
+  header {
+    padding: 20px 24px;
+  }
+  .season {
+    display: none;
+  }
+  main {
+    margin-top: 28px;
+  }
+  .card-body {
+    padding: 24px;
+  }
+  .notes {
+    gap: 10px;
+    font-size: 12px;
+  }
+  .list-header h2 {
+    font-size: 21px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
