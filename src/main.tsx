@@ -15,6 +15,38 @@ type State = {
 const sessionId = location.pathname.match(/^\/session\/([\w-]+)$/)?.[1];
 const key = (id: string) => `santa:${id}`;
 
+function SantaIcon() {
+  return (
+    <svg className="santa-icon" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M13 28C14 8 33 4 48 17l6 9H13Z" fill="#c52e3a" />
+      <circle cx="54" cy="23" r="7" fill="#fffaf0" />
+      <ellipse cx="32" cy="39" rx="20" ry="21" fill="#fffaf0" />
+      <ellipse cx="32" cy="35" rx="15" ry="13" fill="#f2c4a7" />
+      <rect x="10" y="22" width="42" height="10" rx="5" fill="#fffaf0" />
+      <path
+        d="M23 34h3m12 0h3"
+        stroke="#422a29"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+      <circle cx="20" cy="40" r="3" fill="#e69589" />
+      <circle cx="44" cy="40" r="3" fill="#e69589" />
+      <path
+        d="M32 43c-7-7-15-1-11 3 4 4 9 1 11-1 2 2 7 5 11 1 4-4-4-10-11-3Z"
+        fill="#fffaf0"
+      />
+      <path
+        d="M27 49q5 5 10 0"
+        fill="none"
+        stroke="#9f343b"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+      <ellipse cx="32" cy="40" rx="4" ry="3" fill="#ecab91" />
+    </svg>
+  );
+}
+
 function App() {
   const [state, setState] = useState<State | null>(null),
     [name, setName] = useState(""),
@@ -137,12 +169,11 @@ function App() {
     <div className="page">
       <header>
         <a href="/" className="brand">
-          <span aria-hidden="true">✳</span> Secret Santa
+          <SantaIcon /> Secret Santa
         </a>
         <span className="season">EN LITEN JULHEMLIGHET</span>
       </header>
       <main>
-        <div className="eyebrow">Dela glädjen. Behåll hemligheten.</div>
         <h1>
           {state?.drawn
             ? "Lite julmagi, bara för dig."
@@ -158,8 +189,8 @@ function App() {
             : state
               ? "Bjud in dina vänner. När alla är med är det dags att dra namn."
               : sessionId
-                ? "Skriv ditt namn och gå med i julens hemligaste sällskap."
-                : "Samla ditt sällskap och låt slumpen bestämma vem du ger en julklapp till."}
+                ? "Skriv ditt namn för att vara med."
+                : "Samla alla och låt slumpen bestämma vem du ger en julklapp till."}
         </p>
         {error && (
           <div role="alert" className="alert alert-error message">
@@ -220,20 +251,19 @@ function App() {
                   </div>
                   <div className="step">DU ÄR SECRET SANTA TILL</div>
                   <h2 className="recipient">{state.recipient}</h2>
-                  <p>En liten omtanke. En stor överraskning.</p>
                   <span className="badge badge-outline private-badge">
                     Bara du ser ditt namn
                   </span>
                 </>
               ) : (
                 <>
-                  <h2>Din hemlighet väntar.</h2>
-                  <p>Se till att ingen kikar över axeln.</p>
+                  <h2>Se till att ingen kikar över axeln.</h2>
+                  <p>Och glöm inte spara någonstans säkert.</p>
                   <button
                     className="btn btn-primary main-button"
                     onClick={() => setRevealed(true)}
                   >
-                    Öppna min julhemlighet
+                    Öppna luckan
                   </button>
                 </>
               )}
@@ -252,24 +282,37 @@ function App() {
             <section className="card panel">
               <div className="card-body">
                 <div className="list-header">
-                  <h2>Julsällskapet</h2>
+                  <h2>Familjen</h2>
                   <span className="badge badge-outline">
                     {state.people.length}{" "}
                     {state.people.length === 1 ? "deltagare" : "deltagare"}
                   </span>
                 </div>
-                <ul className="participants">
+                <ul
+                  className="participants"
+                  aria-label="Deltagare i julsällskapet"
+                >
                   {state.people.map((p, i) => (
-                    <li key={p.id}>
-                      <span className={`avatar-letter color-${i % 3}`}>
-                        {p.name.slice(0, 1).toLocaleUpperCase("sv")}
-                      </span>
-                      <span>{p.name}</span>
-                      {p.id === state.me && (
-                        <span className="you">
-                          du{state.isHost ? " · värd" : ""}
-                        </span>
-                      )}
+                    <li
+                      key={p.id}
+                      className={`present present-${i % 4}`}
+                      style={
+                        {
+                          "--drift-duration": `${18 + (i % 5) * 3}s`,
+                          "--drift-delay": `${-(i % 7) * 3}s`,
+                        } as React.CSSProperties
+                      }
+                    >
+                      <span className="present-bow" aria-hidden="true" />
+                      <span className="present-lid" aria-hidden="true" />
+                      <div className="present-label">
+                        <span className="participant-name">{p.name}</span>
+                        {p.id === state.me && (
+                          <span className="you">
+                            du{state.isHost ? " · värd" : ""}
+                          </span>
+                        )}
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -349,7 +392,6 @@ function App() {
         )}
       </main>
       <footer>
-        Lite mindre stress. Lite mer jul.
         <span>
           Sessioner försvinner efter 6 timmar eller när värden avslutar.
         </span>

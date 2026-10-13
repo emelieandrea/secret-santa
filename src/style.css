@@ -42,9 +42,10 @@ header {
   align-items: center;
   gap: 10px;
 }
-.brand span {
-  color: #ac343d;
-  font-size: 32px;
+.santa-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
 }
 .season {
   font-size: 12px;
@@ -157,43 +158,6 @@ label {
   height: 28px;
   color: #5d7471;
   border-color: #d3dfdd;
-}
-.participants {
-  list-style: none;
-  padding: 0;
-  margin: 4px 0;
-}
-.participants li {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 0;
-  border-bottom: 1px solid #eef1f2;
-  font-size: 16px;
-}
-.avatar-letter {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  font-weight: 600;
-  background: #e9efed;
-  color: #3a6055;
-  flex-shrink: 0;
-}
-.color-1 {
-  background: #f6e9e9;
-  color: #9b454c;
-}
-.color-2 {
-  background: #e7eef6;
-  color: #4f6e91;
-}
-.you {
-  margin-left: auto;
-  color: #7b898a;
-  font-size: 13px;
 }
 .link-row {
   display: flex;
@@ -315,5 +279,226 @@ footer span {
   *::after {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* Christmas palette extends DaisyUI's winter theme. */
+:root,
+[data-theme="winter"] {
+  color-scheme: light;
+  --color-base-100: #fffcf7;
+  --color-base-200: #f9eee9;
+  --color-base-300: #ecd3ce;
+  --color-base-content: #542b30;
+  --color-primary: #b52f40;
+  --color-primary-content: #ffffff;
+  --color-secondary: #23604c;
+  --color-secondary-content: #ffffff;
+  --color-accent: #b88230;
+  --color-accent-content: #ffffff;
+  --color-neutral: #275544;
+  --color-neutral-content: #ffffff;
+  color: #542b30;
+  background: #f9eee9;
+}
+.page {
+  background:
+    radial-gradient(ellipse at 0% 0%, #eac0c1 0, transparent 55%),
+    radial-gradient(ellipse at 100% 100%, #efd4c1 0, transparent 55%), #fbf1ed;
+}
+.brand,
+h1 {
+  color: #8d2334;
+}
+.season,
+.intro,
+.small,
+.reveal p,
+.end {
+  color: #78585b;
+}
+.eyebrow {
+  color: #a02939;
+}
+.panel {
+  background: #fffcf7;
+  border-color: #e9cec6;
+  border-top: 4px solid #b52f40;
+  box-shadow: 0 16px 48px #8425380d;
+}
+.input {
+  background: #fffaf5;
+  border-color: #d9bcb4;
+}
+.step,
+.waiting,
+.notes,
+footer {
+  color: #365e4a;
+}
+.badge {
+  color: #6b4648;
+  border-color: #d9bcb4;
+}
+footer span {
+  color: #78585b;
+}
+.participants {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  justify-items: center;
+  align-items: center;
+  gap: 52px 28px;
+  padding: 52px 26px 36px;
+  margin: 8px 0;
+  min-height: 240px;
+  border: 1px solid #e3c5b4;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle, #b8823029 1px, transparent 1.5px) 0 0 / 20px 20px,
+    #f8ece1;
+  box-shadow: inset 0 2px 12px #9b6a3410;
+}
+.present {
+  --paper: #b52f40;
+  --ribbon: #eed29a;
+  position: relative;
+  width: 100%;
+  max-width: 180px;
+  min-height: 122px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 12px 18px;
+  border-radius: 4px 4px 10px 10px;
+  background:
+    linear-gradient(
+      90deg,
+      transparent 43%,
+      var(--ribbon) 43% 57%,
+      transparent 57%
+    ),
+    var(--paper);
+  box-shadow: 0 9px 14px #71342b20;
+  animation: present-drift var(--drift-duration) ease-in-out var(--drift-delay)
+    infinite;
+}
+.present-1 {
+  --paper: #2f634d;
+  --ribbon: #e6c887;
+  animation-direction: reverse;
+}
+.present-2 {
+  --paper: #d19b50;
+  --ribbon: #9b293b;
+}
+.present-3 {
+  --paper: #853148;
+  --ribbon: #f0d8b4;
+  animation-direction: reverse;
+}
+.present-lid {
+  position: absolute;
+  top: -8px;
+  left: -4px;
+  right: -4px;
+  height: 21px;
+  border-radius: 4px;
+  background:
+    linear-gradient(
+      90deg,
+      transparent 43%,
+      var(--ribbon) 43% 57%,
+      transparent 57%
+    ),
+    var(--paper);
+  box-shadow: 0 3px 0 #00000015;
+}
+.present-bow {
+  position: absolute;
+  top: -29px;
+  left: 50%;
+  width: 58px;
+  height: 26px;
+  transform: translateX(-50%);
+}
+.present-bow::before,
+.present-bow::after {
+  content: "";
+  position: absolute;
+  width: 30px;
+  height: 24px;
+  border: 6px solid var(--ribbon);
+}
+.present-bow::before {
+  left: 0;
+  border-radius: 70% 70% 0 70%;
+  transform: rotate(12deg);
+}
+.present-bow::after {
+  right: 0;
+  border-radius: 70% 70% 70% 0;
+  transform: rotate(-12deg);
+}
+.present-label {
+  position: relative;
+  width: 100%;
+  padding: 9px 8px;
+  background: #fffcf1;
+  border: 1px solid #fff5d6;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px #00000010;
+  text-align: center;
+}
+.participant-name {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #542b30;
+  overflow-wrap: anywhere;
+}
+.you {
+  display: block;
+  color: #765352;
+  font-size: 13px;
+  margin-top: 3px;
+}
+.participants:hover .present,
+.participants:focus-within .present {
+  animation-play-state: paused;
+}
+@keyframes present-drift {
+  0%,
+  100% {
+    transform: translate(-7px, 4px) rotate(-2deg);
+  }
+  25% {
+    transform: translate(6px, -5px) rotate(1deg);
+  }
+  50% {
+    transform: translate(8px, 5px) rotate(2deg);
+  }
+  75% {
+    transform: translate(-5px, 9px) rotate(-1deg);
+  }
+}
+@media (max-width: 420px) {
+  .participants {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 46px 22px;
+    padding: 48px 18px 30px;
+  }
+  .present {
+    padding-inline: 7px;
+  }
+  .list-header {
+    flex-wrap: wrap;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .present {
+    animation: none;
   }
 }
