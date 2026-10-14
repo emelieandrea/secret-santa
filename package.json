@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "node --experimental-strip-types server/index.ts",
-    "build": "tsc --noEmit && vite build --configLoader runner",
+    "build": "tsc --noEmit && npm run build:server && vite build --configLoader runner",
     "start": "NODE_ENV=production node --experimental-strip-types server/index.ts",
-    "test": "node --experimental-strip-types --test server/*.test.ts"
+    "test": "node --experimental-strip-types --test server/*.test.ts",
+    "build:server": "tsc -p tsconfig.server.json"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",

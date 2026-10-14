@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": "server",
+    "outDir": "server-build",
+    "rewriteRelativeImportExtensions": true,
+    "declaration": false,
+    "sourceMap": false
+  },
+  "include": ["server/app.ts", "server/session.ts"],
+  "exclude": ["server/*.test.ts"]
+}

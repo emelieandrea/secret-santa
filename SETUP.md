@@ -11,7 +11,7 @@ You do not need Supabase Auth, browser database access, or Realtime. There are d
 
 ## 2. Vercel
 
-Push the updated project including `api/`, `server/`, `vercel.json`, `supabase/`, `package.json`, and `package-lock.json` to your repository. Do not commit `.env`, credentials, `node_modules`, or `dist`.
+Push the updated project including `api/`, `server/`, `tsconfig.server.json`, `vercel.json`, `supabase/`, `package.json`, and `package-lock.json` to your repository. Do not commit `.env`, credentials, `node_modules`, or `dist`.
 
 In **Project → Settings → Environment Variables**, add:
 
@@ -51,4 +51,4 @@ Do not set `PUBLIC_ORIGIN` to a deployed URL when testing at localhost. Use a se
 
 ## Changes
 
-The shared Supabase API runs in `server/app.ts`; `api/index.ts` is the Vercel entrypoint. Local serving stays in `server/index.ts`. Joins and draws lock one session row; drawing verifies that the participant list has not changed. Randomness still uses Node's cryptographic random generator. Supabase credentials and all assignments stay on the server.
+The shared Supabase API runs in `server/app.ts`; `api/index.js` is the Vercel entrypoint. The build compiles the backend into `server-build/` using `tsconfig.server.json`, rewriting TypeScript import extensions to JavaScript. Vercel includes these generated files in its function; do not commit `server-build/`. Local serving stays in `server/index.ts`. Joins and draws lock one session row; drawing verifies that the participant list has not changed. Randomness still uses Node's cryptographic random generator. Supabase credentials and all assignments stay on the server.
