@@ -42,11 +42,26 @@ type Database = {
     CompositeTypes: Record<string, never>;
   };
 };
+class BackendError extends Error {
+  diagnostic: { stage: string; code: string; status?: number; missing?: string[] };
+  constructor(diagnostic: { stage: string; code: string; status?: number; missing?: string[] }) {
+    super("Session backend failed");
+    this.diagnostic = diagnostic;
+  }
+}
 let client: SupabaseClient<Database> | undefined;
 function database() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY;
-  if (!url || !key) throw new Error("Supabase is not configured");
+  if (!url || !key) {
+    throw new BackendError({
+      stage: "configuration", code: "MISSING_ENVIRONMENT_VARIABLE",
+      missing: [!url && "SUPABASE_URL", !key && "SUPABASE_SECRET_KEY"].filter(Boolean) as string[],
+    });
+  }
+  try { new URL(url); } catch {
+    throw new BackendError({ stage: "configuration", code: "INVALID_SUPABASE_URL" });
+  }
   return (client ??= createClient<Database>(url, key, {
     auth: {
       persistSession: false,
@@ -61,7 +76,7 @@ async function execute(
   secret: string,
   payload: object = {},
 ) {
-  const { data, error } = await database().rpc("santa_action", {
+  const { data, error, status } = await database().rpc("santa_action", {
     action,
     session_id: id,
     secret_hash: hash(secret),
@@ -69,9 +84,12 @@ async function execute(
   });
   if (error) {
     // Do not return database errors or credentials to the browser.
-    throw new Error("Supabase request failed");
+    // Log only a bounded error code and HTTP status, never database messages,
+    // request payloads, participant keys, names or assignments.
+    const code = /^[A-Z0-9_]{1,32}$/i.test(error.code || "") ? error.code : "DATABASE_REQUEST_FAILED";
+    throw new BackendError({ stage: "supabase_rpc", code, status });
   }
-  if (!data) throw new Error("Empty Supabase response");
+  if (!data) throw new BackendError({ stage: "supabase_rpc", code: "EMPTY_RESPONSE", status });
   return data;
 }
 app.use((req, res, next) => {
@@ -148,6 +166,11 @@ app.use(
     res: express.Response,
     _next: express.NextFunction,
   ) => {
+    if (!(err instanceof SyntaxError)) {
+      console.error("Secret Santa backend:", JSON.stringify(
+        err instanceof BackendError ? err.diagnostic : { stage: "runtime", code: "UNEXPECTED_ERROR" },
+      ));
+    }
     res.status(err instanceof SyntaxError ? 400 : 503).json({
       error:
         err instanceof SyntaxError
