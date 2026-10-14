@@ -71,6 +71,11 @@ function App() {
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
     if (res.status === 204) return null;
+    if (!res.headers.get("content-type")?.includes("application/json")) {
+      throw new Error(
+        "Servern kunde inte nås. Sessionens backend behöver köras tillsammans med hemsidan.",
+      );
+    }
     const data = await res.json();
     if (!res.ok)
       throw Object.assign(new Error(data.error), { status: res.status });

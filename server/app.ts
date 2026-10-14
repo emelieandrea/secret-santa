@@ -1,0 +1,159 @@
+import express from "express";
+import { createHash } from "node:crypto";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { draw, token } from "./session.ts";
+
+const app = express();
+app.disable("x-powered-by");
+app.use(express.json({ limit: "2kb" }));
+app.use((_req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
+const hash = (secret: string) =>
+  createHash("sha256").update(secret).digest("hex");
+type Result =
+  | {
+      id: string;
+      people: { id: string; name: string }[];
+      me: string;
+      isHost: boolean;
+      drawn: boolean;
+      recipient: string | null;
+      expires: number;
+    }
+  | { status: number; error: string };
+type Database = {
+  public: {
+    Tables: Record<string, never>;
+    Views: Record<string, never>;
+    Functions: {
+      santa_action: {
+        Args: {
+          action: string;
+          session_id: string;
+          secret_hash: string;
+          payload: object;
+        };
+        Returns: Result;
+      };
+    };
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
+  };
+};
+let client: SupabaseClient<Database> | undefined;
+function database() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SECRET_KEY;
+  if (!url || !key) throw new Error("Supabase is not configured");
+  return (client ??= createClient<Database>(url, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  }));
+}
+async function execute(
+  action: string,
+  id: string,
+  secret: string,
+  payload: object = {},
+) {
+  const { data, error } = await database().rpc("santa_action", {
+    action,
+    session_id: id,
+    secret_hash: hash(secret),
+    payload,
+  });
+  if (error) {
+    // Do not return database errors or credentials to the browser.
+    throw new Error("Supabase request failed");
+  }
+  if (!data) throw new Error("Empty Supabase response");
+  return data;
+}
+app.use((req, res, next) => {
+  if (["POST", "DELETE"].includes(req.method) && req.headers.origin) {
+    const origin =
+      process.env.PUBLIC_ORIGIN ||
+      `${process.env.VERCEL ? "https" : req.protocol}://${req.get("host")}`;
+    if (req.headers.origin !== new URL(origin).origin)
+      return res.status(403).json({ error: "Förfrågan tillåts inte." });
+  }
+  next();
+});
+app.all(
+  /^\/api\/sessions(?:\/([\w-]+)(?:\/(join|draw))?)?$/,
+  async (req, res) => {
+    const match = req.path.match(
+      /^\/api\/sessions(?:\/([\w-]+)(?:\/(join|draw))?)?$/,
+    )!;
+    let id = match[1];
+    const suffix = match[2];
+    let action: string;
+    if (!id && req.method === "POST") action = "create";
+    else if (suffix === "join" && req.method === "POST") action = "join";
+    else if (suffix === "draw" && req.method === "POST") action = "draw";
+    else if (id && !suffix && req.method === "GET") action = "read";
+    else if (id && !suffix && req.method === "DELETE") action = "end";
+    else return res.status(405).json({ error: "Metoden stöds inte." });
+
+    const joining = action === "create" || action === "join";
+    const name = req.body?.name;
+    if (
+      joining &&
+      (typeof name !== "string" || !name.trim() || name.trim().length > 40)
+    )
+      return res.status(400).json({ error: "Skriv ett namn med 1–40 tecken." });
+    const secret = joining
+      ? token()
+      : req.headers.authorization?.match(/^Bearer ([\w-]+)$/)?.[1];
+    if (!secret)
+      return res.status(401).json({ error: "Du behöver gå med i sessionen." });
+    id ||= token();
+    let payload: object = joining
+      ? { name: name.trim(), participant_id: token() }
+      : {};
+    if (action === "draw") {
+      const current = await execute("read", id, secret);
+      if ("status" in current)
+        return res.status(current.status).json({ error: current.error });
+      if (!current.isHost)
+        return res
+          .status(403)
+          .json({ error: "Bara värden kan starta lottningen." });
+      if (current.drawn)
+        return res.status(409).json({ error: "Lottningen är redan klar." });
+      if (current.people.length < 2)
+        return res.status(400).json({ error: "Minst två deltagare behövs." });
+      const ids = current.people.map((p: { id: string }) => p.id);
+      payload = { ids, matches: Object.fromEntries(draw(ids)) };
+    }
+    const result = await execute(action, id, secret, payload);
+    if ("status" in result)
+      return res.status(result.status).json({ error: result.error });
+    if (action === "end") return res.sendStatus(204);
+    return res
+      .status(joining ? 201 : 200)
+      .json({ ...result, ...(joining ? { secret } : {}) });
+  },
+);
+app.use((_req, res) => res.status(404).json({ error: "Sidan finns inte." }));
+app.use(
+  (
+    err: Error,
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction,
+  ) => {
+    res.status(err instanceof SyntaxError ? 400 : 503).json({
+      error:
+        err instanceof SyntaxError
+          ? "Ogiltig förfrågan."
+          : "Sessionstjänsten är inte tillgänglig. Försök igen senare.",
+    });
+  },
+);
+export default app;
