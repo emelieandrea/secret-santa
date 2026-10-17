@@ -8,6 +8,6 @@
     "declaration": false,
     "sourceMap": false
   },
-  "include": ["server/app.ts", "server/session.ts"],
+  "include": ["server/app.ts", "server/session.ts", "server/pin.ts"],
   "exclude": ["server/*.test.ts"]
 }

@@ -1,3 +1,4 @@
+import { pinDigest, validPin } from "./pin.ts";
 import express from "express";
 import { fileURLToPath } from "node:url";
 import { draw, token, view, type Session } from "./session.ts";
@@ -54,18 +55,24 @@ function name(body: unknown): string {
   return n.trim();
 }
 app.post("/api/sessions", (req, res) => {
+  if (!validPin(req.body?.pin))
+    return res
+      .status(400)
+      .json({ error: "PIN-koden måste bestå av exakt fyra siffror." });
   const n = name(req.body);
   if (sessions.size >= 1000)
     return res
       .status(503)
       .json({ error: "Det är fullt just nu. Försök senare." });
-  const p = { id: token(), name: n, secret: token() };
+  const p = { id: token(), name: n, secret: token(), pinHash: "" };
+  const id = token();
+  p.pinHash = pinDigest(id, p.id, req.body.pin);
   const s: Session = {
-    id: token(),
+    id,
     host: p.secret,
     people: [p],
     matches: null,
-    expires: Date.now() + 6 * 60 * 60 * 1000,
+    expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
   };
   sessions.set(s.id, s);
   res.status(201).json({ secret: p.secret, ...view(s, p) });
@@ -85,6 +92,10 @@ app.post("/api/sessions/:id/join", (req, res) => {
     return res
       .status(409)
       .json({ error: "Sessionen är full (100 deltagare)." });
+  if (!validPin(req.body?.pin))
+    return res
+      .status(400)
+      .json({ error: "PIN-koden måste bestå av exakt fyra siffror." });
   const n = name(req.body);
   if (
     s.people.some(
@@ -94,9 +105,65 @@ app.post("/api/sessions/:id/join", (req, res) => {
     return res.status(409).json({
       error: "Namnet används redan. Lägg till exempel till ditt efternamn.",
     });
-  const p = { id: token(), name: n, secret: token() };
+  const p = { id: token(), name: n, secret: token(), pinHash: "" };
+  p.pinHash = pinDigest(s.id, p.id, req.body.pin);
   s.people.push(p);
   res.status(201).json({ secret: p.secret, ...view(s, p) });
+});
+
+app.get("/api/sessions/:id/lobby", (req, res) => {
+  const s = sessions.get(req.params.id);
+  if (!s || s.expires <= Date.now())
+    return res
+      .status(404)
+      .json({ error: "Sessionen har avslutats eller finns inte." });
+  res.json({
+    id: s.id,
+    people: s.people.map(({ id, name }) => ({ id, name })),
+    drawn: !!s.matches,
+    expires: s.expires,
+  });
+});
+app.post("/api/sessions/:id/resume", (req, res) => {
+  if (!validPin(req.body?.pin))
+    return res
+      .status(400)
+      .json({ error: "PIN-koden måste bestå av exakt fyra siffror." });
+  const s = sessions.get(req.params.id);
+  if (!s || s.expires <= Date.now())
+    return res
+      .status(404)
+      .json({ error: "Sessionen har avslutats eller finns inte." });
+  const p = s.people.find((p) => p.id === req.body.participantId);
+  if (!p) return res.status(401).json({ error: "Fel namn eller PIN-kod." });
+  if (p.lockedUntil && p.lockedUntil > Date.now())
+    return res
+      .status(429)
+      .json({
+        error: "För många felaktiga försök. Försök igen om 15 minuter.",
+      });
+  if (p.lockedUntil) {
+    p.failures = 0;
+    p.lockedUntil = undefined;
+  }
+  if (p.pinHash !== pinDigest(s.id, p.id, req.body.pin)) {
+    p.failures = (p.failures || 0) + 1;
+    if (p.failures >= 5) p.lockedUntil = Date.now() + 15 * 60 * 1000;
+    return res
+      .status(p.lockedUntil ? 429 : 401)
+      .json({
+        error: p.lockedUntil
+          ? "För många felaktiga försök. Försök igen om 15 minuter."
+          : "Fel namn eller PIN-kod.",
+      });
+  }
+  if (s.host === p.secret) {
+    p.secret = token();
+    s.host = p.secret;
+  } else p.secret = token();
+  p.failures = 0;
+  p.lockedUntil = undefined;
+  res.json({ secret: p.secret, ...view(s, p) });
 });
 
 app.use("/api/sessions/:id", (req, res, next) => {
@@ -115,6 +182,20 @@ app.use("/api/sessions/:id", (req, res, next) => {
   next();
 });
 
+app.post("/api/sessions/:id/pin", (req, res) => {
+  if (!validPin(req.body?.pin))
+    return res
+      .status(400)
+      .json({ error: "PIN-koden måste bestå av exakt fyra siffror." });
+  if (res.locals.p.pinHash)
+    return res.status(409).json({ error: "Du har redan valt en PIN-kod." });
+  res.locals.p.pinHash = pinDigest(
+    res.locals.s.id,
+    res.locals.p.id,
+    req.body.pin,
+  );
+  res.json(view(res.locals.s, res.locals.p));
+});
 app.get("/api/sessions/:id", (_req, res) =>
   res.json(view(res.locals.s, res.locals.p)),
 );

@@ -19,6 +19,7 @@ In **Project → Settings → Environment Variables**, add:
 | --- | --- | --- |
 | `SUPABASE_URL` | Your Supabase Project URL | Production; Preview if you want previews to work |
 | `SUPABASE_SECRET_KEY` | Your Supabase secret key | Production; Preview if needed |
+| `PIN_SECRET` | A permanent random secret (at least 32 characters) | Same environments |
 
 These are server-only variables. **Never prefix the secret key with `VITE_` or put it in frontend code.** No Supabase variables are needed in React.
 
@@ -37,7 +38,7 @@ Under **Build and Deployment**, select **Vite**, build command `npm run build`, 
 5. Refresh both pages; the session should still exist.
 6. End the session as organizer. Both windows should lose access.
 
-Sessions expire after six hours and are deleted by cleanup within roughly ten minutes while the database is active. Organizer deletion is immediate. This deletes active table records, not necessarily copies retained by the hosting provider's backups/logs. Free Supabase projects may pause after low activity; resume the project before a seasonal event.
+Sessions expire after seven days and are deleted by cleanup within roughly ten minutes while the database is active. Organizer deletion is immediate. This deletes active table records, not necessarily copies retained by the hosting provider's backups/logs. Free Supabase projects may pause after low activity; resume the project before a seasonal event.
 
 ## Local development
 
@@ -52,3 +53,24 @@ Do not set `PUBLIC_ORIGIN` to a deployed URL when testing at localhost. Use a se
 ## Changes
 
 The shared Supabase API runs in `server/app.ts`; `api/index.js` is the Vercel entrypoint. The build compiles the backend into `server-build/` using `tsconfig.server.json`, rewriting TypeScript import extensions to JavaScript. Vercel includes these generated files in its function; do not commit `server-build/`. Local serving stays in `server/index.ts`. Joins and draws lock one session row; drawing verifies that the participant list has not changed. Randomness still uses Node's cryptographic random generator. Supabase credentials and all assignments stay on the server.
+
+
+## Upgrading an existing project: PIN and seven-day sessions
+
+1. Run all of `supabase/migrate-pin.sql` in SQL Editor **before** deploying the new code. This updates the function, extends still-active legacy sessions once, and keeps scheduled cleanup. Already deleted sessions cannot be restored.
+2. Generate a new permanent secret on your computer:
+
+```sh
+node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
+```
+
+3. Add the output as `PIN_SECRET` in Vercel (Production, and Preview if used). Do not use a `VITE_` prefix. Keep this value unchanged: changing it invalidates existing PINs. Do not send it in chat or commit it. For the same Supabase project, use the same secret in all deployments.
+4. Push the code and redeploy. Keep `SUPABASE_URL` and `SUPABASE_SECRET_KEY` unchanged.
+5. Run `supabase/verify.sql` for database checks. It rolls back its test records.
+6. Create a new session with name and four-digit PIN (leading zeroes work). Join as a second person. Close/reopen in a private window, use the invitation link, select **Jag är redan med**, choose the name and enter the PIN. Verify host controls and each person's recipient after drawing.
+
+PINs are hashed with a server-secret HMAC specific to session and participant; raw PINs are not stored in Supabase. Five failed attempts lock that participant's recovery for 15 minutes. This is enforced atomically in the database, across Vercel instances. Anyone with the invitation can see participant names, but not PINs or assignments.
+
+Recovery issues a fresh private token and invalidates that participant's previous token, including older open tabs. Existing logged-in participants without PINs get a form to set one. A legacy participant who already lost their private token cannot recover an account that never had a PIN. PIN reset is intentionally not available to the organizer.
+
+Sessions expire seven days **after creation**, not seven days after each visit. Organizer deletion is immediate; expired data is cleaned up every ten minutes while Supabase is active.

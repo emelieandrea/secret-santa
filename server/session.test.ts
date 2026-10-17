@@ -1,6 +1,43 @@
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
-import { draw, view, type Session } from './session.ts';
-test('each participant gets a unique other participant', () => { for (let n = 2; n <= 100; n++) { const ids = Array.from({ length: n }, (_, i) => String(i)); for (let k = 0; k < 100; k++) { const result = draw(ids); assert.equal(result.size, n); assert.equal(new Set(result.values()).size, n); for (const id of ids) assert.notEqual(result.get(id), id); } } });
-test('a singleton cannot be drawn', () => assert.throws(() => draw(['a'])));
-test('views reveal only the requesting participant’s recipient', () => { const s: Session = { id: 'room', host: 'hostsecret', people: [{ id: 'a', name: 'Anna', secret: 'hostsecret' }, { id: 'b', name: 'Bo', secret: 'bsecret' }, { id: 'c', name: 'Cia', secret: 'csecret' }], matches: new Map([['a', 'b'], ['b', 'c'], ['c', 'a']]), expires: 0 }; const result = view(s, s.people[0]); assert.equal(result.recipient, 'Bo'); assert.equal(result.isHost, true); assert.deepEqual(result.people, [{ id: 'a', name: 'Anna' }, { id: 'b', name: 'Bo' }, { id: 'c', name: 'Cia' }]); assert.ok(!JSON.stringify(result).includes('secret')); assert.ok(!('matches' in result)); assert.equal(view(s, s.people[1]).isHost, false); });
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { draw, view, type Session } from "./session.ts";
+test("each participant gets a unique other participant", () => {
+  for (let n = 2; n <= 100; n++) {
+    const ids = Array.from({ length: n }, (_, i) => String(i));
+    for (let k = 0; k < 100; k++) {
+      const result = draw(ids);
+      assert.equal(result.size, n);
+      assert.equal(new Set(result.values()).size, n);
+      for (const id of ids) assert.notEqual(result.get(id), id);
+    }
+  }
+});
+test("a singleton cannot be drawn", () => assert.throws(() => draw(["a"])));
+test("views reveal only the requesting participant’s recipient", () => {
+  const s: Session = {
+    id: "room",
+    host: "hostsecret",
+    people: [
+      { id: "a", name: "Anna", secret: "hostsecret" },
+      { id: "b", name: "Bo", secret: "bsecret" },
+      { id: "c", name: "Cia", secret: "csecret" },
+    ],
+    matches: new Map([
+      ["a", "b"],
+      ["b", "c"],
+      ["c", "a"],
+    ]),
+    expires: 0,
+  };
+  const result = view(s, s.people[0]);
+  assert.equal(result.recipient, "Bo");
+  assert.equal(result.isHost, true);
+  assert.deepEqual(result.people, [
+    { id: "a", name: "Anna" },
+    { id: "b", name: "Bo" },
+    { id: "c", name: "Cia" },
+  ]);
+  assert.ok(!JSON.stringify(result).includes("hostsecret"));
+  assert.ok(!("matches" in result));
+  assert.equal(view(s, s.people[1]).isHost, false);
+});

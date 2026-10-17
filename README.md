@@ -25,4 +25,4 @@ npm start
 
 Follow [SETUP.md](./SETUP.md) for database setup, environment variables, deployment and verification. Vercel always uses Supabase; local development without credentials can still use memory-only sessions.
 
-Participants do not need accounts. Sessions last six hours and organizer deletion is immediate. Expired database records are cleaned up every ten minutes. Assignments are private API responses; the organizer has no access to other assignments. The database/server operator can technically access stored data. With two participants, each necessarily gets the other.
+Participants do not need accounts. Sessions last seven days and organizer deletion is immediate. Expired database records are cleaned up every ten minutes. Assignments are private API responses; the organizer has no access to other assignments. The database/server operator can technically access stored data. With two participants, each necessarily gets the other.

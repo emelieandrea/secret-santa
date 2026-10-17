@@ -502,3 +502,21 @@ footer span {
     animation: none;
   }
 }
+
+.entry-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.entry-tabs .btn {
+  flex: 1;
+}
+.select {
+  width: 100%;
+  min-height: 50px;
+  font-size: 16px;
+}
+.pin-upgrade {
+  margin-bottom: 24px;
+}

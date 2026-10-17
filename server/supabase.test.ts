@@ -35,6 +35,7 @@ test("Supabase API hashes tokens, handles concurrency errors and hides database 
   const dbPort = (db.address() as { port: number }).port;
   process.env.SUPABASE_URL = `http://127.0.0.1:${dbPort}`;
   process.env.SUPABASE_SECRET_KEY = "server-only-test-key";
+  process.env.PIN_SECRET = "test-only-pin-secret-with-at-least-32-characters";
   const app = (await import("./app.ts")).default;
   const server = app.listen(0, "127.0.0.1");
   await once(server, "listening");
@@ -51,6 +52,7 @@ test("Supabase API hashes tokens, handles concurrency errors and hides database 
   try {
     const joined = await call("/api/sessions/room/join", "POST", {
       name: "Alice",
+      pin: "0123",
     });
     assert.equal(joined.status, 201);
     const data = await joined.json();
