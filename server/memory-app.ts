@@ -137,11 +137,9 @@ app.post("/api/sessions/:id/resume", (req, res) => {
   const p = s.people.find((p) => p.id === req.body.participantId);
   if (!p) return res.status(401).json({ error: "Fel namn eller PIN-kod." });
   if (p.lockedUntil && p.lockedUntil > Date.now())
-    return res
-      .status(429)
-      .json({
-        error: "För många felaktiga försök. Försök igen om 15 minuter.",
-      });
+    return res.status(429).json({
+      error: "För många felaktiga försök. Försök igen om 15 minuter.",
+    });
   if (p.lockedUntil) {
     p.failures = 0;
     p.lockedUntil = undefined;
@@ -149,13 +147,11 @@ app.post("/api/sessions/:id/resume", (req, res) => {
   if (p.pinHash !== pinDigest(s.id, p.id, req.body.pin)) {
     p.failures = (p.failures || 0) + 1;
     if (p.failures >= 5) p.lockedUntil = Date.now() + 15 * 60 * 1000;
-    return res
-      .status(p.lockedUntil ? 429 : 401)
-      .json({
-        error: p.lockedUntil
-          ? "För många felaktiga försök. Försök igen om 15 minuter."
-          : "Fel namn eller PIN-kod.",
-      });
+    return res.status(p.lockedUntil ? 429 : 401).json({
+      error: p.lockedUntil
+        ? "För många felaktiga försök. Försök igen om 15 minuter."
+        : "Fel namn eller PIN-kod.",
+    });
   }
   if (s.host === p.secret) {
     p.secret = token();
@@ -199,6 +195,29 @@ app.post("/api/sessions/:id/pin", (req, res) => {
 app.get("/api/sessions/:id", (_req, res) =>
   res.json(view(res.locals.s, res.locals.p)),
 );
+
+app.post("/api/sessions/:id/remove", (req, res) => {
+  const s: Session = res.locals.s;
+  if (res.locals.p.secret !== s.host)
+    return res
+      .status(403)
+      .json({ error: "Bara värden kan ta bort deltagare." });
+  if (s.matches)
+    return res
+      .status(409)
+      .json({ error: "Deltagare kan inte tas bort efter lottningen." });
+  if (req.body?.participantId === res.locals.p.id)
+    return res
+      .status(400)
+      .json({ error: "Du kan inte ta bort dig själv som värd." });
+  const index = s.people.findIndex((p) => p.id === req.body?.participantId);
+  if (index < 0)
+    return res
+      .status(404)
+      .json({ error: "Deltagaren finns inte längre i sessionen." });
+  s.people.splice(index, 1);
+  res.json(view(s, res.locals.p));
+});
 
 app.post("/api/sessions/:id/draw", (_req, res) => {
   const s: Session = res.locals.s;

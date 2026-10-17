@@ -138,10 +138,10 @@ app.use((req, res, next) => {
   next();
 });
 app.all(
-  /^\/api\/sessions(?:\/([\w-]+)(?:\/(join|draw|lobby|resume|pin))?)?$/,
+  /^\/api\/sessions(?:\/([\w-]+)(?:\/(join|draw|lobby|resume|pin|remove))?)?$/,
   async (req, res) => {
     const match = req.path.match(
-      /^\/api\/sessions(?:\/([\w-]+)(?:\/(join|draw|lobby|resume|pin))?)?$/,
+      /^\/api\/sessions(?:\/([\w-]+)(?:\/(join|draw|lobby|resume|pin|remove))?)?$/,
     )!;
     let id = match[1];
     const suffix = match[2];
@@ -151,6 +151,7 @@ app.all(
     else if (suffix === "lobby" && req.method === "GET") action = "lobby";
     else if (suffix === "resume" && req.method === "POST") action = "resume";
     else if (suffix === "pin" && req.method === "POST") action = "set_pin";
+    else if (suffix === "remove" && req.method === "POST") action = "remove";
     else if (suffix === "draw" && req.method === "POST") action = "draw";
     else if (id && !suffix && req.method === "GET") action = "read";
     else if (id && !suffix && req.method === "DELETE") action = "end";
@@ -193,6 +194,8 @@ app.all(
             pin_hash: pinDigest(id, participantId, req.body.pin),
           }
         : {};
+    if (action === "remove")
+      payload = { participant_id: req.body.participantId };
     if (action === "set_pin") {
       const current = await execute("read", id, secret);
       if ("status" in current)
@@ -218,12 +221,10 @@ app.all(
     if ("status" in result)
       return res.status(result.status).json({ error: result.error });
     if (action === "end") return res.sendStatus(204);
-    return res
-      .status(joining ? 201 : 200)
-      .json({
-        ...result,
-        ...(joining || action === "resume" ? { secret } : {}),
-      });
+    return res.status(joining ? 201 : 200).json({
+      ...result,
+      ...(joining || action === "resume" ? { secret } : {}),
+    });
   },
 );
 app.use((_req, res) => res.status(404).json({ error: "Sidan finns inte." }));

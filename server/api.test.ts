@@ -98,6 +98,56 @@ test("session lifecycle, authorization and private API responses", async () => {
       name: "Cia",
       pin: "0123",
     });
+    const extra = await call(path + "/join", "POST", undefined, {
+      name: "Felanmälan",
+      pin: "1234",
+    });
+    assert.equal(extra.status, 201);
+    assert.equal(
+      (
+        await call(path + "/remove", "POST", b.data.secret, {
+          participantId: extra.data.me,
+        })
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await call(path + "/remove", "POST", a.data.secret, {
+          participantId: a.data.me,
+        })
+      ).status,
+      400,
+    );
+    const removed = await call(path + "/remove", "POST", a.data.secret, {
+      participantId: extra.data.me,
+    });
+    assert.equal(removed.status, 200);
+    assert.equal(removed.data.people.length, 3);
+    assert.equal((await call(path, "GET", extra.data.secret)).status, 401);
+    assert.equal(
+      (
+        await call(path + "/resume", "POST", undefined, {
+          participantId: extra.data.me,
+          pin: "1234",
+        })
+      ).status,
+      401,
+    );
+    const rejoined = await call(path + "/join", "POST", undefined, {
+      name: "Felanmälan",
+      pin: "5678",
+    });
+    assert.equal(rejoined.status, 201);
+    assert.notEqual(rejoined.data.me, extra.data.me);
+    assert.equal(
+      (
+        await call(path + "/remove", "POST", a.data.secret, {
+          participantId: rejoined.data.me,
+        })
+      ).status,
+      200,
+    );
     assert.equal((await call(path)).status, 401);
     assert.equal(
       (await call(path + "/draw", "POST", b.data.secret)).status,
@@ -115,6 +165,14 @@ test("session lifecycle, authorization and private API responses", async () => {
     assert.equal(
       (await call(path + "/draw", "POST", a.data.secret)).status,
       200,
+    );
+    assert.equal(
+      (
+        await call(path + "/remove", "POST", a.data.secret, {
+          participantId: b.data.me,
+        })
+      ).status,
+      409,
     );
     const recipients = [];
     for (const p of [a, b, c]) {
@@ -142,15 +200,34 @@ test("session lifecycle, authorization and private API responses", async () => {
       ).status,
       409,
     );
-    const resumedGuest = await call(path + "/resume", "POST", undefined, {participantId:b.data.me,pin:"0123"});
-    assert.equal(resumedGuest.status,200);
-    assert.equal(resumedGuest.data.recipient,recipients[1]);
-    assert.equal(resumedGuest.data.isHost,false);
-    b.data.secret=resumedGuest.data.secret;
-    for(let attempt=1;attempt<=5;attempt++) {
-      assert.equal((await call(path+"/resume","POST",undefined,{participantId:c.data.me,pin:"9999"})).status,attempt===5?429:401);
+    const resumedGuest = await call(path + "/resume", "POST", undefined, {
+      participantId: b.data.me,
+      pin: "0123",
+    });
+    assert.equal(resumedGuest.status, 200);
+    assert.equal(resumedGuest.data.recipient, recipients[1]);
+    assert.equal(resumedGuest.data.isHost, false);
+    b.data.secret = resumedGuest.data.secret;
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      assert.equal(
+        (
+          await call(path + "/resume", "POST", undefined, {
+            participantId: c.data.me,
+            pin: "9999",
+          })
+        ).status,
+        attempt === 5 ? 429 : 401,
+      );
     }
-    assert.equal((await call(path+"/resume","POST",undefined,{participantId:c.data.me,pin:"0123"})).status,429);
+    assert.equal(
+      (
+        await call(path + "/resume", "POST", undefined, {
+          participantId: c.data.me,
+          pin: "0123",
+        })
+      ).status,
+      429,
+    );
     assert.equal((await call(path, "DELETE", b.data.secret)).status, 403);
     assert.equal((await call(path, "DELETE", a.data.secret)).status, 204);
     assert.equal((await call(path, "GET", a.data.secret)).status, 404);

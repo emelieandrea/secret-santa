@@ -535,3 +535,38 @@ footer span {
 .reveal .result-expiry .small {
   font-size: 14px;
 }
+
+.present:has(.remove-person) {
+  flex-direction: column;
+  padding-bottom: 8px;
+}
+.present .remove-person {
+  color: #fff;
+  min-height: 30px;
+  height: auto;
+  margin-top: 6px;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.present .remove-person:hover {
+  background: #00000020;
+}
+.remove-confirm {
+  border: 1px solid var(--color-base-300);
+  border-radius: 10px;
+  padding: 16px;
+}
+.remove-confirm > p:first-child {
+  margin-bottom: 8px;
+  overflow-wrap: anywhere;
+}
+.remove-confirm .small {
+  text-align: left;
+}
+.remove-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}

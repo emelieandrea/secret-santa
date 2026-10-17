@@ -136,6 +136,24 @@ begin
   if action in ('draw','end') and s.host_hash <> secret_hash then
     return jsonb_build_object('status',403,'error','Bara värden kan lotta eller avsluta sessionen.');
   end if;
+  if action = 'remove' then
+    if s.host_hash <> secret_hash then
+      return jsonb_build_object('status',403,'error','Bara värden kan ta bort deltagare.');
+    end if;
+    if s.matches is not null then
+      return jsonb_build_object('status',409,'error','Deltagare kan inte tas bort efter lottningen.');
+    end if;
+    if payload->>'participant_id' = person->>'id' then
+      return jsonb_build_object('status',400,'error','Du kan inte ta bort dig själv som värd.');
+    end if;
+    if not exists(select 1 from jsonb_array_elements(s.people) p where p->>'id' = payload->>'participant_id') then
+      return jsonb_build_object('status',404,'error','Deltagaren finns inte längre i sessionen.');
+    end if;
+    select jsonb_agg(p order by ord) into s.people
+      from jsonb_array_elements(s.people) with ordinality as people(p,ord)
+      where p->>'id' <> payload->>'participant_id';
+    update public.santa_sessions set people=s.people where id=session_id;
+  end if;
   if action = 'end' then
     delete from public.santa_sessions where id = session_id;
     return '{}'::jsonb;
@@ -147,7 +165,7 @@ begin
     select jsonb_agg(p->>'id' order by ord) into ids
       from jsonb_array_elements(s.people) with ordinality as people(p,ord);
     if ids is distinct from payload->'ids' then
-      return jsonb_build_object('status',409,'error','En deltagare gick precis med. Kontrollera listan och lotta igen.');
+      return jsonb_build_object('status',409,'error','Deltagarlistan ändrades precis. Kontrollera listan och lotta igen.');
     end if;
     n := jsonb_array_length(s.people);
     if n < 2 then return jsonb_build_object('status',400,'error','Minst två deltagare behövs.'); end if;
@@ -163,7 +181,7 @@ begin
     s.matches := payload->'matches';
     update public.santa_sessions set matches = s.matches where id = session_id;
   end if;
-  if action not in ('create','join','read','draw','resume','set_pin') then
+  if action not in ('create','join','read','draw','resume','set_pin','remove') then
     return jsonb_build_object('status',400,'error','Ogiltig åtgärd.');
   end if;
   select jsonb_agg(jsonb_build_object('id',p->>'id','name',p->>'name') order by ord)

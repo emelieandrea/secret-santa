@@ -74,3 +74,10 @@ PINs are hashed with a server-secret HMAC specific to session and participant; r
 Recovery issues a fresh private token and invalidates that participant's previous token, including older open tabs. Existing logged-in participants without PINs get a form to set one. A legacy participant who already lost their private token cannot recover an account that never had a PIN. PIN reset is intentionally not available to the organizer.
 
 Sessions expire seven days **after creation**, not seven days after each visit. Organizer deletion is immediate; expired data is cleaned up every ten minutes while Supabase is active.
+
+
+## Participant removal upgrade
+
+Run `supabase/migrate-remove-participants.sql` in SQL Editor, then push and redeploy. No environment variable changes are required. This migration replaces only the RPC function; it does not delete sessions or change their expiry. `supabase/verify.sql` now also checks removal permissions, revoked access and rejoining with a new PIN.
+
+Only the host can remove other participants, before the draw. The host cannot remove themselves. Removal deletes that participant's PIN hash, token hash and recovery lockout state from the session. The same name can then join again with a new PIN. After drawing, removal is blocked to preserve all existing assignments.

@@ -63,15 +63,24 @@ function ResultExpiry({ expires }: { expires: number }) {
   const parts = [
     days > 0 ? `${days} ${days === 1 ? "dag" : "dagar"}` : null,
     hours > 0 ? `${hours} ${hours === 1 ? "timme" : "timmar"}` : null,
-    remainingMinutes > 0 ? `${remainingMinutes} ${remainingMinutes === 1 ? "minut" : "minuter"}` : null,
+    remainingMinutes > 0
+      ? `${remainingMinutes} ${remainingMinutes === 1 ? "minut" : "minuter"}`
+      : null,
   ].filter(Boolean);
   const deadline = new Intl.DateTimeFormat("sv-SE", {
-    day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
+    day: "numeric",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
   }).format(expires);
 
   return (
     <div className="result-expiry">
-      <p>{minutes > 0 ? `Resultatet finns kvar i ${parts.join(", ")}.` : "Sessionens giltighetstid har gått ut."}</p>
+      <p>
+        {minutes > 0
+          ? `Resultatet finns kvar i ${parts.join(", ")}.`
+          : "Sessionens giltighetstid har gått ut."}
+      </p>
       <p className="small">
         Till <time dateTime={new Date(expires).toISOString()}>{deadline}</time>,
         eller tills värden avslutar sessionen.
@@ -95,7 +104,11 @@ function App() {
     [offline, setOffline] = useState(false),
     [revealed, setRevealed] = useState(false),
     [copied, setCopied] = useState(false),
-    [confirm, setConfirm] = useState(false);
+    [confirm, setConfirm] = useState(false),
+    [removeTarget, setRemoveTarget] = useState<{
+      id: string;
+      name: string;
+    } | null>(null);
 
   const [secret, setSecret] = useState(() =>
     sessionId ? sessionStorage.getItem(key(sessionId)) : null,
@@ -240,6 +253,24 @@ function App() {
     }
   }
 
+  async function removeParticipant() {
+    if (!removeTarget) return;
+    setBusy(true);
+    setError("");
+    try {
+      setState(
+        await request(`/${sessionId}/remove`, "POST", {
+          participantId: removeTarget.id,
+        }),
+      );
+      setRemoveTarget(null);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function copy() {
     try {
       await navigator.clipboard.writeText(location.href);
@@ -265,7 +296,9 @@ function App() {
             : state
               ? "Alla samlade?"
               : sessionId
-                ? "Du är inbjuden."
+                ? lobby?.drawn
+                  ? "Välkommen tillbaka."
+                  : "Du är inbjuden."
                 : "Vem får din julklapp?"}
         </h1>
         <p className="intro">
@@ -274,7 +307,9 @@ function App() {
             : state
               ? "Bjud in dina vänner. När alla är med är det dags att dra namn."
               : sessionId
-                ? "Skriv ditt namn för att vara med."
+                ? lobby?.drawn
+                  ? "Välj ditt namn och ange din PIN-kod."
+                  : "Skriv ditt namn för att vara med."
                 : "Samla alla och låt slumpen bestämma vem du ger en julklapp till."}
         </p>
         {error && (
@@ -317,147 +352,152 @@ function App() {
           </section>
         )}
         {!state ? (
-          <section className="card panel">
-            <div className="card-body">
-              <div className="step">
-                {sessionId ? "VÄLKOMMEN IN" : "BÖRJA HÄR"}
-              </div>
-              {sessionId && (
-                <div
-                  className="entry-tabs"
-                  role="group"
-                  aria-label="Välj hur du vill ansluta"
-                >
-                  <button
-                    type="button"
-                    className={`btn ${mode === "join" ? "btn-primary" : "btn-ghost"}`}
-                    disabled={lobby?.drawn}
-                    onClick={() => {
-                      setMode("join");
-                      setPin("");
-                      setError("");
-                    }}
-                  >
-                    Gå med
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn ${mode === "resume" ? "btn-primary" : "btn-ghost"}`}
-                    onClick={() => {
-                      setMode("resume");
-                      setPin("");
-                      setError("");
-                    }}
-                  >
-                    Jag är redan med
-                  </button>
+          sessionId && !lobby ? (
+            <p role="status">
+              {error ? "Sessionen kunde inte hämtas." : "Hämtar sessionen…"}
+            </p>
+          ) : (
+            <section className="card panel">
+              <div className="card-body">
+                <div className="step">
+                  {sessionId ? "VÄLKOMMEN IN" : "BÖRJA HÄR"}
                 </div>
-              )}
-              <h2>
-                {sessionId
-                  ? mode === "resume"
-                    ? "Välkommen tillbaka"
-                    : "Vad heter du?"
-                  : "Skapa ett julsällskap"}
-              </h2>
-              {sessionId && lobby && (
-                <p className="small">
-                  {lobby.drawn
-                    ? "Lottningen är klar. Logga in för att se ditt namn."
-                    : "Med i sessionen:"}{" "}
-                  {!lobby.drawn && lobby.people.map((p) => p.name).join(", ")}
-                </p>
-              )}
-              <form onSubmit={join}>
-                {sessionId && mode === "resume" ? (
-                  <>
-                    <label htmlFor="participant">Ditt namn</label>
-                    <select
-                      id="participant"
-                      className="select select-bordered"
-                      value={participantId}
-                      onChange={(e) => setParticipantId(e.target.value)}
-                      required
+                {sessionId && lobby && !lobby.drawn && (
+                  <div
+                    className="entry-tabs"
+                    role="group"
+                    aria-label="Välj hur du vill ansluta"
+                  >
+                    <button
+                      type="button"
+                      className={`btn ${mode === "join" ? "btn-primary" : "btn-ghost"}`}
+                      onClick={() => {
+                        setMode("join");
+                        setPin("");
+                        setError("");
+                      }}
                     >
-                      <option value="">Välj ditt namn</option>
-                      {lobby?.people.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </>
-                ) : (
-                  <>
-                    <label htmlFor="name">Ditt namn</label>
-                    <input
-                      id="name"
-                      className="input input-bordered"
-                      placeholder="Till exempel Emilia"
-                      autoComplete="given-name"
-                      maxLength={40}
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                    />
-                  </>
+                      Gå med
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn ${mode === "resume" ? "btn-primary" : "btn-ghost"}`}
+                      onClick={() => {
+                        setMode("resume");
+                        setPin("");
+                        setError("");
+                      }}
+                    >
+                      Jag är redan med
+                    </button>
+                  </div>
                 )}
-                <label htmlFor="pin">
-                  {mode === "resume" && sessionId
-                    ? "Din PIN-kod"
-                    : "Välj en PIN-kod (4 siffror)"}
-                </label>
-                <input
-                  id="pin"
-                  className="input input-bordered"
-                  type="password"
-                  inputMode="numeric"
-                  pattern="[0-9]{4}"
-                  minLength={4}
-                  maxLength={4}
-                  autoComplete={
-                    mode === "resume" && sessionId
-                      ? "current-password"
-                      : "new-password"
-                  }
-                  value={pin}
-                  onChange={(e) =>
-                    setPin(e.target.value.replace(/[^0-9]/g, ""))
-                  }
-                  required
-                  aria-describedby="pin-help"
-                />
-                <p id="pin-help" className="small">
-                  Spara länken och kom ihåg din PIN. Du behöver den för att se
-                  lottningen.
-                </p>
-                <button
-                  className="btn btn-primary main-button"
-                  disabled={
-                    busy ||
-                    pin.length !== 4 ||
-                    (sessionId && mode === "resume"
-                      ? !participantId
-                      : !name.trim())
-                  }
-                >
-                  {busy ? (
-                    <span className="loading loading-spinner loading-sm" />
-                  ) : null}
+                <h2>
                   {sessionId
                     ? mode === "resume"
-                      ? "Visa min sida"
-                      : "Gå med i sessionen"
-                    : "Skapa inbjudningslänk"}
-                </button>
-              </form>
-              <p className="small">
-                {sessionId
-                  ? "Din PIN-kod skyddar din privata tilldelning."
-                  : "Du är också med i lottningen, såklart."}
-              </p>
-            </div>
-          </section>
+                      ? "Välkommen tillbaka"
+                      : "Vad heter du?"
+                    : "Skapa ett julsällskap"}
+                </h2>
+                {sessionId && lobby && (
+                  <p className="small">
+                    {lobby.drawn
+                      ? "Lottningen är klar. Logga in för att se ditt namn."
+                      : "Med i sessionen:"}{" "}
+                    {!lobby.drawn && lobby.people.map((p) => p.name).join(", ")}
+                  </p>
+                )}
+                <form onSubmit={join}>
+                  {sessionId && mode === "resume" ? (
+                    <>
+                      <label htmlFor="participant">Ditt namn</label>
+                      <select
+                        id="participant"
+                        className="select select-bordered"
+                        value={participantId}
+                        onChange={(e) => setParticipantId(e.target.value)}
+                        required
+                      >
+                        <option value="">Välj ditt namn</option>
+                        {lobby?.people.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </>
+                  ) : (
+                    <>
+                      <label htmlFor="name">Ditt namn</label>
+                      <input
+                        id="name"
+                        className="input input-bordered"
+                        placeholder="Till exempel Emilia"
+                        autoComplete="given-name"
+                        maxLength={40}
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                      />
+                    </>
+                  )}
+                  <label htmlFor="pin">
+                    {mode === "resume" && sessionId
+                      ? "Din PIN-kod"
+                      : "Välj en PIN-kod (4 siffror)"}
+                  </label>
+                  <input
+                    id="pin"
+                    className="input input-bordered"
+                    type="password"
+                    inputMode="numeric"
+                    pattern="[0-9]{4}"
+                    minLength={4}
+                    maxLength={4}
+                    autoComplete={
+                      mode === "resume" && sessionId
+                        ? "current-password"
+                        : "new-password"
+                    }
+                    value={pin}
+                    onChange={(e) =>
+                      setPin(e.target.value.replace(/[^0-9]/g, ""))
+                    }
+                    required
+                    aria-describedby="pin-help"
+                  />
+                  <p id="pin-help" className="small">
+                    Spara länken och kom ihåg din PIN. Du behöver den för att se
+                    lottningen.
+                  </p>
+                  <button
+                    className="btn btn-primary main-button"
+                    disabled={
+                      busy ||
+                      pin.length !== 4 ||
+                      (sessionId && mode === "resume"
+                        ? !participantId
+                        : !name.trim())
+                    }
+                  >
+                    {busy ? (
+                      <span className="loading loading-spinner loading-sm" />
+                    ) : null}
+                    {sessionId
+                      ? mode === "resume"
+                        ? "Visa min sida"
+                        : "Gå med i sessionen"
+                      : "Skapa inbjudningslänk"}
+                  </button>
+                </form>
+                <p className="small">
+                  {sessionId
+                    ? "Din PIN-kod skyddar din privata tilldelning."
+                    : "Du är också med i lottningen, såklart."}
+                </p>
+              </div>
+            </section>
+          )
         ) : state.drawn ? (
           <section className={`card panel reveal ${revealed ? "opened" : ""}`}>
             <div className="card-body">
@@ -534,9 +574,54 @@ function App() {
                           </span>
                         )}
                       </div>
+                      {state.isHost && p.id !== state.me && (
+                        <button
+                          className="btn btn-ghost btn-sm remove-person"
+                          type="button"
+                          aria-label={`Ta bort ${p.name}`}
+                          disabled={busy}
+                          onClick={() =>
+                            setRemoveTarget({ id: p.id, name: p.name })
+                          }
+                        >
+                          Ta bort
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>
+                {removeTarget && state.isHost && (
+                  <div
+                    className="remove-confirm"
+                    role="group"
+                    aria-label="Bekräfta borttagning"
+                  >
+                    <p>
+                      Ta bort <strong>{removeTarget.name}</strong> från
+                      sessionen?
+                    </p>
+                    <p className="small">
+                      Personens åtkomst och PIN tas bort. Personen kan gå med
+                      igen och välja en ny PIN innan lottningen.
+                    </p>
+                    <div className="remove-actions">
+                      <button
+                        className="btn btn-error"
+                        disabled={busy}
+                        onClick={() => void removeParticipant()}
+                      >
+                        Ja, ta bort
+                      </button>
+                      <button
+                        className="btn btn-ghost"
+                        disabled={busy}
+                        onClick={() => setRemoveTarget(null)}
+                      >
+                        Avbryt
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {state.isHost ? (
                   <>
                     <div className="invite">
@@ -556,7 +641,12 @@ function App() {
                     </div>
                     <button
                       className="btn btn-primary main-button"
-                      disabled={busy || state.people.length < 2 || offline}
+                      disabled={
+                        busy ||
+                        state.people.length < 2 ||
+                        offline ||
+                        !!removeTarget
+                      }
                       onClick={() => void action("draw")}
                     >
                       Alla är med — lotta namn
