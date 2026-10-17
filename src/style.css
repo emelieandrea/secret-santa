@@ -520,3 +520,18 @@ footer span {
 .pin-upgrade {
   margin-bottom: 24px;
 }
+
+.result-expiry {
+  width: 100%;
+  margin-top: 12px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-base-300);
+}
+.reveal .result-expiry > p:first-child {
+  color: var(--color-base-content);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.reveal .result-expiry .small {
+  font-size: 14px;
+}

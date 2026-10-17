@@ -48,6 +48,38 @@ function SantaIcon() {
   );
 }
 
+function ResultExpiry({ expires }: { expires: number }) {
+  const [now, setNow] = useState(Date.now);
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const minutes = Math.max(0, Math.ceil((expires - now) / 60_000));
+  const days = Math.floor(minutes / (24 * 60));
+  const hours = Math.floor((minutes % (24 * 60)) / 60);
+  const remainingMinutes = minutes % 60;
+  const parts = [
+    days > 0 ? `${days} ${days === 1 ? "dag" : "dagar"}` : null,
+    hours > 0 ? `${hours} ${hours === 1 ? "timme" : "timmar"}` : null,
+    remainingMinutes > 0 ? `${remainingMinutes} ${remainingMinutes === 1 ? "minut" : "minuter"}` : null,
+  ].filter(Boolean);
+  const deadline = new Intl.DateTimeFormat("sv-SE", {
+    day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
+  }).format(expires);
+
+  return (
+    <div className="result-expiry">
+      <p>{minutes > 0 ? `Resultatet finns kvar i ${parts.join(", ")}.` : "Sessionens giltighetstid har gått ut."}</p>
+      <p className="small">
+        Till <time dateTime={new Date(expires).toISOString()}>{deadline}</time>,
+        eller tills värden avslutar sessionen.
+      </p>
+    </div>
+  );
+}
+
 function App() {
   const [state, setState] = useState<State | null>(null),
     [name, setName] = useState(""),
@@ -396,8 +428,8 @@ function App() {
                   aria-describedby="pin-help"
                 />
                 <p id="pin-help" className="small">
-                  Spara länken och kom ihåg din PIN. Du kan återvända hit i sju
-                  dagar.
+                  Spara länken och kom ihåg din PIN. Du behöver den för att se
+                  lottningen.
                 </p>
                 <button
                   className="btn btn-primary main-button"
@@ -455,6 +487,7 @@ function App() {
                   </button>
                 </>
               )}
+              <ResultExpiry expires={state.expires} />
               {revealed && (
                 <button
                   className="btn btn-ghost"
